@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Agriculture Dashboard</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, sans-serif; background: #f5f5f0; padding: 1.5rem; }
+.dash { max-width: 860px; margin: 0 auto; }
+.header { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #e0e0d8; }
+.header-icon { width: 40px; height: 40px; background: #EAF3DE; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.header-icon i { color: #3B6D11; font-size: 20px; }
+.header h1 { font-size: 18px; font-weight: 500; color: #1a1a18; }
+.header p { font-size: 13px; color: #888780; margin-top: 2px; }
+.dot { width: 8px; height: 8px; background: #639922; border-radius: 50%; display: inline-block; margin-right: 6px; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 500; }
+.badge-green { background: #EAF3DE; color: #3B6D11; }
+.badge-amber { background: #FAEEDA; color: #854F0B; }
+.badge-red { background: #FCEBEB; color: #A32D2D; }
+.section-title { font-size: 12px; font-weight: 500; color: #888780; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+.metric { background: #efefea; border-radius: 8px; padding: 12px 14px; }
+.metric-label { font-size: 11px; color: #888780; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
+.metric-label i { font-size: 13px; }
+.metric-value { font-size: 22px; font-weight: 500; color: #1a1a18; line-height: 1; }
+.metric-unit { font-size: 12px; color: #888780; margin-top: 2px; }
+.metric-status { font-size: 11px; margin-top: 6px; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.5rem; }
+.card { background: #fff; border: 1px solid #e0e0d8; border-radius: 12px; padding: 1rem 1.25rem; }
+.npk-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.npk-bar-wrap { flex: 1; height: 6px; background: #efefea; border-radius: 999px; overflow: hidden; }
+.npk-bar { height: 100%; border-radius: 999px; }
+.npk-label { font-size: 12px; font-weight: 500; color: #1a1a18; width: 12px; }
+.npk-val { font-size: 12px; color: #888780; width: 28px; text-align: right; }
+.actuator-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.actuator { border: 1px solid #e0e0d8; border-radius: 8px; padding: 10px 8px; text-align: center; }
+.actuator i { font-size: 22px; margin-bottom: 4px; display: block; }
+.actuator-name { font-size: 11px; color: #888780; margin-bottom: 3px; }
+.actuator-state { font-size: 12px; font-weight: 500; }
+.act-on { color: #3B6D11; }
+.act-off { color: #888780; }
+.score-ring { position: relative; width: 90px; height: 90px; margin: 0 auto 8px; }
+.score-ring svg { transform: rotate(-90deg); }
+.score-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; }
+.score-num { font-size: 22px; font-weight: 500; color: #1a1a18; line-height: 1; }
+.score-den { font-size: 11px; color: #888780; }
+.param-list { font-size: 12px; }
+.param-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #e0e0d8; }
+.param-row:last-child { border-bottom: none; }
+.chart-wrap { position: relative; width: 100%; height: 220px; margin-bottom: 1.5rem; }
+.dist-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.dist-label { font-size: 12px; color: #888780; width: 88px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dist-bar-wrap { flex: 1; height: 14px; background: #efefea; border-radius: 3px; overflow: hidden; }
+.dist-bar { height: 100%; border-radius: 3px; }
+.dist-count { font-size: 11px; color: #888780; width: 28px; text-align: right; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: #888780; margin-bottom: 8px; }
+.legend-item { display: flex; align-items: center; gap: 4px; }
+.legend-sq { width: 10px; height: 10px; border-radius: 2px; }
+select { font-size: 12px; padding: 4px 8px; border-radius: 8px; border: 1px solid #c0c0b8; background: #fff; color: #1a1a18; cursor: pointer; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+<div class="dash">
+  <div class="header">
+    <div class="header-icon"><i class="ti ti-plant-2"></i></div>
+    <div>
+      <h1><span class="dot"></span>Smart Agriculture IoT</h1>
+      <p>ESP32 · DHT22 · NPK RS485 · MQTT @ broker.hivemq.com</p>
+    </div>
+    <span class="badge badge-green" style="margin-left:auto">Simulasi Wokwi</span>
+  </div>
+
+  <div class="section-title">Sensor Lingkungan — Live</div>
+  <div class="metrics" id="live-metrics"></div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="section-title" style="margin-bottom:8px">Nutrisi Tanah (NPK)</div>
+      <div id="npk-bars"></div>
+    </div>
+    <div class="card">
+      <div class="section-title" style="margin-bottom:8px">Status Aktuator</div>
+      <div class="actuator-grid" id="actuators"></div>
+      <div style="margin-top:12px;font-size:11px;color:#888780">Logika: Pompa aktif jika kelembaban tanah &lt;40% · Kipas aktif jika suhu &gt;Ref+5°C · Lampu aktif jika cahaya &lt;5000 lux</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:1.5rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div class="section-title" style="margin-bottom:0">Rekomendasi & Kesesuaian Tanaman</div>
+      <select id="crop-select"></select>
+    </div>
+    <div style="display:grid;grid-template-columns:100px 1fr;gap:16px;align-items:start">
+      <div>
+        <div class="score-ring">
+          <svg width="90" height="90" viewBox="0 0 90 90">
+            <circle cx="45" cy="45" r="36" fill="none" stroke="#D3D1C7" stroke-width="8"/>
+            <circle cx="45" cy="45" r="36" fill="none" id="score-arc" stroke="#639922" stroke-width="8" stroke-linecap="round" stroke-dasharray="226" stroke-dashoffset="226"/>
+          </svg>
+          <div class="score-center"><div class="score-num" id="score-num">0</div><div class="score-den">/ 6</div></div>
+        </div>
+        <div style="text-align:center;font-size:11px;color:#888780" id="score-label">-</div>
+      </div>
+      <div class="param-list" id="param-list"></div>
+    </div>
+  </div>
+
+  <div class="section-title">Distribusi Dataset — 2.200 Sampel, 22 Tanaman</div>
+  <div class="card" style="margin-bottom:1.5rem">
+    <div id="dist-bars"></div>
+  </div>
+
+  <div class="card" style="margin-bottom:1.5rem">
+    <div class="section-title" style="margin-bottom:8px">Profil Rata-rata Nutrisi per Tanaman (N-P-K)</div>
+    <div class="legend">
+      <div class="legend-item"><span class="legend-sq" style="background:#639922"></span>Nitrogen</div>
+      <div class="legend-item"><span class="legend-sq" style="background:#BA7517"></span>Fosfor</div>
+      <div class="legend-item"><span class="legend-sq" style="background:#185FA5"></span>Kalium</div>
+    </div>
+    <div class="chart-wrap"><canvas id="npkChart"></canvas></div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="section-title" style="margin-bottom:8px">Rata-rata Suhu per Tanaman (°C)</div>
+      <div class="chart-wrap" style="height:180px"><canvas id="tempChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="section-title" style="margin-bottom:8px">Rata-rata pH Tanah per Tanaman</div>
+      <div class="chart-wrap" style="height:180px"><canvas id="phChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CROPS = [
+  {name:"rice",      N:79.9, P:47.6, K:39.9, temp:23.7, hum:82.3, ph:6.4, rain:236.2},
+  {name:"maize",     N:77.8, P:48.4, K:19.8, temp:22.4, hum:65.1, ph:6.2, rain:84.8},
+  {name:"banana",    N:100.2,P:82.0, K:50.0, temp:27.4, hum:80.4, ph:6.0, rain:104.6},
+  {name:"mango",     N:20.1, P:27.2, K:29.9, temp:31.2, hum:50.2, ph:5.8, rain:94.7},
+  {name:"papaya",    N:49.9, P:59.0, K:50.0, temp:33.7, hum:92.4, ph:6.7, rain:142.6},
+  {name:"coconut",   N:22.0, P:16.9, K:30.6, temp:27.4, hum:94.8, ph:6.0, rain:175.7},
+  {name:"watermelon",N:99.4, P:17.0, K:50.2, temp:25.6, hum:85.2, ph:6.5, rain:50.8},
+  {name:"coffee",    N:101.2,P:28.7, K:29.9, temp:25.5, hum:58.9, ph:6.8, rain:158.1},
+  {name:"cotton",    N:117.8,P:46.2, K:19.6, temp:24.0, hum:79.8, ph:6.9, rain:80.4},
+  {name:"orange",    N:19.6, P:16.6, K:10.0, temp:22.8, hum:92.2, ph:7.0, rain:110.5},
+  {name:"grapes",    N:23.2, P:132.5,K:200.1,temp:23.8, hum:81.9, ph:6.0, rain:69.6},
+  {name:"apple",     N:20.8, P:134.2,K:199.9,temp:22.6, hum:92.3, ph:5.9, rain:112.7},
+];
+const ALL_CROPS = ["rice","maize","chickpea","kidneybeans","pigeonpeas","mothbeans","mungbean","blackgram","lentil","pomegranate","banana","mango","grapes","watermelon","muskmelon","apple","orange","papaya","coconut","cotton","jute","coffee"];
+
+function randBetween(a,b){return a+(Math.random()*(b-a));}
+let sensor = {temp:24.5,hum:78.0,ph:6.6,soil:35,rain:42,light:3800,N:82,P:50,K:41};
+
+function updateSensor(){
+  sensor.temp=parseFloat((sensor.temp+randBetween(-0.3,0.3)).toFixed(1));
+  sensor.hum=parseFloat((sensor.hum+randBetween(-0.5,0.5)).toFixed(1));
+  sensor.ph=parseFloat((sensor.ph+randBetween(-0.05,0.05)).toFixed(2));
+  sensor.soil=Math.round(Math.max(10,Math.min(90,sensor.soil+randBetween(-2,2))));
+  sensor.rain=Math.round(Math.max(0,Math.min(100,sensor.rain+randBetween(-3,3))));
+  sensor.light=Math.round(Math.max(200,Math.min(50000,sensor.light+randBetween(-200,200))));
+  sensor.N=Math.round(Math.max(5,sensor.N+randBetween(-3,3)));
+  sensor.P=Math.round(Math.max(5,sensor.P+randBetween(-2,2)));
+  sensor.K=Math.round(Math.max(5,sensor.K+randBetween(-2,2)));
+}
+
+function renderLiveMetrics(){
+  const metrics=[
+    {label:'Suhu Udara',icon:'ti-thermometer',val:sensor.temp.toFixed(1),unit:'°C',ok:sensor.temp>=20&&sensor.temp<=35},
+    {label:'Kelembaban',icon:'ti-droplet',val:sensor.hum.toFixed(0),unit:'%',ok:sensor.hum>=50&&sensor.hum<=95},
+    {label:'pH Tanah',icon:'ti-test-pipe',val:sensor.ph.toFixed(2),unit:'',ok:sensor.ph>=5.5&&sensor.ph<=7.5},
+    {label:'Kelembaban Tanah',icon:'ti-plant',val:sensor.soil,unit:'%',ok:sensor.soil>=40},
+    {label:'Curah Hujan',icon:'ti-cloud-rain',val:sensor.rain,unit:'mm/hr',ok:sensor.rain>=20},
+    {label:'Intensitas Cahaya',icon:'ti-sun',val:sensor.light.toLocaleString(),unit:'lux',ok:sensor.light>=1000},
+  ];
+  document.getElementById('live-metrics').innerHTML=metrics.map(m=>`
+    <div class="metric">
+      <div class="metric-label"><i class="ti ${m.icon}"></i>${m.label}</div>
+      <div class="metric-value">${m.val}</div>
+      <div class="metric-unit">${m.unit}</div>
+      <div class="metric-status"><span class="${m.ok?'badge badge-green':'badge badge-amber'}">${m.ok?'Normal':'Periksa'}</span></div>
+    </div>`).join('');
+}
+
+function renderNPK(){
+  const items=[{label:'N',val:sensor.N,color:'#639922'},{label:'P',val:sensor.P,color:'#BA7517'},{label:'K',val:sensor.K,color:'#185FA5'}];
+  document.getElementById('npk-bars').innerHTML=items.map(it=>`
+    <div class="npk-row">
+      <div class="npk-label">${it.label}</div>
+      <div class="npk-bar-wrap"><div class="npk-bar" style="width:${Math.min(100,it.val/220*100).toFixed(1)}%;background:${it.color}"></div></div>
+      <div class="npk-val">${it.val}</div>
+      <span style="font-size:11px;color:#888780">mg/kg</span>
+    </div>`).join('');
+}
+
+function renderActuators(){
+  const pumpOn=sensor.soil<40, fanOn=sensor.temp>29, lampOn=sensor.light<5000;
+  const acts=[{label:'Pompa Irigasi',icon:'ti-droplet-filled',on:pumpOn},{label:'Kipas Pendingin',icon:'ti-wind',on:fanOn},{label:'Grow Light',icon:'ti-bulb',on:lampOn}];
+  document.getElementById('actuators').innerHTML=acts.map(a=>`
+    <div class="actuator" style="${a.on?'background:#EAF3DE;border-color:#97C459':''}">
+      <i class="ti ${a.icon}" style="color:${a.on?'#3B6D11':'#888780'}"></i>
+      <div class="actuator-name">${a.label}</div>
+      <div class="actuator-state ${a.on?'act-on':'act-off'}">${a.on?'● AKTIF':'○ OFF'}</div>
+    </div>`).join('');
+}
+
+let activeCrop=CROPS[0];
+function renderCropMatch(){
+  const c=activeCrop;
+  const checks=[
+    {label:'Suhu (°C)',sensor:sensor.temp,ref:c.temp,tol:3},
+    {label:'Kelembaban (%)',sensor:sensor.hum,ref:c.hum,tol:10},
+    {label:'pH Tanah',sensor:sensor.ph,ref:c.ph,tol:0.5},
+    {label:'Nitrogen',sensor:sensor.N,ref:c.N,tol:c.N*0.15},
+    {label:'Fosfor',sensor:sensor.P,ref:c.P,tol:c.P*0.15},
+    {label:'Kalium',sensor:sensor.K,ref:c.K,tol:c.K*0.15},
+  ];
+  const score=checks.filter(x=>Math.abs(x.sensor-x.ref)<=x.tol).length;
+  const pct=(score/6*226).toFixed(1);
+  document.getElementById('score-arc').setAttribute('stroke-dashoffset',(226-pct).toFixed(1));
+  document.getElementById('score-arc').setAttribute('stroke',score>=5?'#639922':score>=3?'#BA7517':'#E24B4A');
+  document.getElementById('score-num').textContent=score;
+  const labels=['Kritis','Kritis','Perlu Perhatian','Perlu Perhatian','Kondisi Baik','Baik','Sangat Optimal'];
+  document.getElementById('score-label').textContent=labels[score]||'-';
+  document.getElementById('param-list').innerHTML=checks.map(x=>{
+    const ok=Math.abs(x.sensor-x.ref)<=x.tol;
+    return `<div class="param-row">
+      <span style="color:#888780;font-size:12px">${x.label}</span>
+      <span style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:12px;color:#888780">ref:${x.ref.toFixed(1)}</span>
+        <span style="font-size:12px;font-weight:500;color:#1a1a18">${x.tol<1?x.sensor.toFixed(2):Math.round(x.sensor)}</span>
+        <span class="${ok?'badge badge-green':'badge badge-amber'}">${ok?'✓':'!'}</span>
+      </span>
+    </div>`;
+  }).join('');
+}
+
+function renderDistBars(){
+  const colors=['#639922','#BA7517','#185FA5','#639922','#BA7517','#185FA5','#639922','#BA7517','#185FA5','#639922','#BA7517','#185FA5','#639922','#BA7517','#185FA5','#639922','#BA7517','#185FA5','#639922','#BA7517','#185FA5','#185FA5'];
+  document.getElementById('dist-bars').innerHTML=ALL_CROPS.map((c,i)=>`
+    <div class="dist-row">
+      <div class="dist-label">${c}</div>
+      <div class="dist-bar-wrap"><div class="dist-bar" style="width:100%;background:${colors[i%colors.length]}"></div></div>
+      <div class="dist-count">100</div>
+    </div>`).join('');
+}
+
+function buildCropSelect(){
+  const sel=document.getElementById('crop-select');
+  sel.innerHTML=CROPS.map((c,i)=>`<option value="${i}">${c.name}</option>`).join('');
+  sel.addEventListener('change',()=>{activeCrop=CROPS[parseInt(sel.value)];renderCropMatch();});
+}
+
+function render(){renderLiveMetrics();renderNPK();renderActuators();renderCropMatch();}
+
+buildCropSelect();
+renderDistBars();
+render();
+
+new Chart(document.getElementById('npkChart'),{
+  type:'bar',
+  data:{labels:CROPS.map(c=>c.name),datasets:[
+    {label:'Nitrogen',data:CROPS.map(c=>Math.round(c.N)),backgroundColor:'#639922',borderSkipped:false},
+    {label:'Fosfor',data:CROPS.map(c=>Math.round(c.P)),backgroundColor:'#BA7517',borderSkipped:false},
+    {label:'Kalium',data:CROPS.map(c=>Math.round(c.K)),backgroundColor:'#185FA5',borderSkipped:false},
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{ticks:{font:{size:10},maxRotation:45,autoSkip:false}},y:{ticks:{font:{size:10}},title:{display:true,text:'mg/kg',font:{size:10}}}}}
+});
+
+new Chart(document.getElementById('tempChart'),{
+  type:'bar',
+  data:{labels:CROPS.map(c=>c.name),datasets:[{label:'Suhu (°C)',data:CROPS.map(c=>parseFloat(c.temp.toFixed(1))),backgroundColor:CROPS.map(c=>c.temp>30?'#E24B4A':c.temp>27?'#BA7517':'#185FA5'),borderSkipped:false}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{ticks:{font:{size:9},maxRotation:45,autoSkip:false}},y:{ticks:{font:{size:10}},min:18,max:36,title:{display:true,text:'°C',font:{size:10}}}}}
+});
+
+new Chart(document.getElementById('phChart'),{
+  type:'bar',
+  data:{labels:CROPS.map(c=>c.name),datasets:[{label:'pH',data:CROPS.map(c=>parseFloat(c.ph.toFixed(2))),backgroundColor:'#639922',borderSkipped:false}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{ticks:{font:{size:9},maxRotation:45,autoSkip:false}},y:{ticks:{font:{size:10}},min:5,max:8,title:{display:true,text:'pH',font:{size:10}}}}}
+});
+
+setInterval(()=>{updateSensor();render();},3000);
+</script>
+</body>
+</html>
